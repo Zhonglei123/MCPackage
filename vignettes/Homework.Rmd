@@ -1,0 +1,1250 @@
+---
+title: "Homework"
+author: "Zhonglei"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Homework}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+# Exercisre 11.7
+
+```{r}
+# 加载lpSolve包
+library(lpSolve)
+
+# 定义目标函数的系数
+objective_coeffs <- c(4, 2, 9)
+
+# 定义约束矩阵
+constraint_matrix <- matrix(c(2, 1, 1,
+                              1, -1, 3), 
+                            nrow = 2, byrow = TRUE)
+
+# 定义约束的右端常数
+constraint_rhs <- c(2, 3)
+
+# 定义约束的方向
+constraint_dir <- c("<=", "<=")
+
+# 求解线性规划问题
+solution <- lp("min", objective_coeffs, constraint_matrix, constraint_dir, constraint_rhs, compute.sens = TRUE)
+
+# 输出结果
+cat("目标函数的最小值:", solution$objval, "\n")
+cat("变量的最优解:\n")
+cat("x =", solution$solution[1], "\n")
+cat("y =", solution$solution[2], "\n")
+cat("z =", solution$solution[3], "\n")
+```
+# Exercise 3
+
+```{r}
+# 加载mtcars数据集
+data(mtcars)
+
+# 定义公式列表
+formulas <- list(
+  mpg ~ disp,
+  mpg ~ I(1 / disp),
+  mpg ~ disp + wt,
+  mpg ~ I(1 / disp) + wt
+)
+
+# 使用for循环拟合线性模型
+models_for <- list()
+for (i in 1:length(formulas)) {
+  models_for[[i]] <- lm(formulas[[i]], data = mtcars)
+}
+
+# 输出for循环拟合的模型
+cat("Using for loop:\n")
+for (i in 1:length(models_for)) {
+  print(summary(models_for[[i]]))
+}
+
+# 使用lapply函数拟合线性模型
+models_lapply <- lapply(formulas, function(f) lm(f, data = mtcars))
+
+# 输出lapply函数拟合的模型
+cat("Using lapply():\n")
+lapply(models_lapply, summary)
+```
+
+# Exercise 4
+
+```{r}
+# 先加载必要的库
+library(datasets)
+
+# 定义一个函数来生成 bootstrap 样本
+generate_bootstrap <- function(data) {
+  rows <- sample(1:nrow(data), rep = TRUE)
+  data[rows, ]
+}
+
+# 使用 lapply 生成 10 个 bootstrap 样本
+bootstraps <- lapply(1:10, function(i) generate_bootstrap(mtcars))
+
+# 定义一个函数来在 bootstrap 样本上拟合模型
+fit_model <- function(data) {
+  lm(mpg ~ disp, data = data)
+}
+
+# 使用 lapply 在每个 bootstrap 样本上拟合模型
+fitted_models <- lapply(bootstraps, fit_model)
+
+# 打印每个模型的摘要
+lapply(fitted_models, summary)
+
+```
+
+# Exercise 5
+```{r}
+# 先加载必要的库
+library(datasets)
+
+# 定义一个函数来生成 bootstrap 样本
+generate_bootstrap <- function(data) {
+  rows <- sample(1:nrow(data), rep = TRUE)
+  data[rows, ]
+}
+
+# 使用 lapply 生成 10 个 bootstrap 样本
+bootstraps <- lapply(1:10, function(i) generate_bootstrap(mtcars))
+
+# 定义一个函数来在 bootstrap 样本上拟合模型
+fit_model <- function(data) {
+  lm(mpg ~ disp, data = data)
+}
+
+# 使用 lapply 在每个 bootstrap 样本上拟合模型
+fitted_models <- lapply(bootstraps, fit_model)
+
+# 定义提取 R^2 的函数
+rsq <- function(mod) summary(mod)$r.squared
+
+# 提取每个模型的 R^2
+rsquared_values <- lapply(fitted_models, rsq)
+
+# 打印 R^2 值
+print(rsquared_values)
+
+```
+# Exercise 3
+```{r}
+# 进行 100 次 t 检验并保存结果
+trials <- replicate(
+  100,
+  t.test(rpois(10, 10), rpois(7, 10)),
+  simplify = FALSE
+)
+
+# 使用 sapply 和匿名函数提取 p 值
+p_values <- sapply(trials, function(x) x$p.value)
+
+# 打印 p 值
+print(p_values)
+
+```
+# exercise 6
+```{r}
+mapply_vapply <- function(FUN, ..., FUN.VALUE) {
+  # 使用 Map() 并行应用函数
+  mapped <- Map(FUN, ...)
+  
+  # 使用 vapply() 将结果强制转换为向量或矩阵
+  vapply(mapped, identity, FUN.VALUE)
+}
+
+# 示例使用
+# 定义一个函数来测试
+test_function <- function(x, y) {
+  x + y
+}
+
+# 创建示例输入
+input1 <- list(1, 2, 3)
+input2 <- list(4, 5, 6)
+
+# 使用 mapply_vapply 进行并行计算
+result <- mapply_vapply(test_function, input1, input2, FUN.VALUE = numeric(1))
+
+# 打印结果
+print(result)
+
+```
+# Exercise 4
+```{r}
+fast_chisq_test <- function(x, y) {
+  # 检查输入是否为数值向量且没有缺失值
+  if (!is.numeric(x) || !is.numeric(y)) {
+    stop("Both inputs must be numeric vectors.")
+  }
+  
+  if (any(is.na(x)) || any(is.na(y))) {
+    stop("Input vectors must not contain missing values.")
+  }
+  
+  # 创建观测值表
+  observed <- table(x, y)
+  
+  # 计算期望值表
+  expected <- outer(rowSums(observed), colSums(observed)) / sum(observed)
+  
+  # 计算卡方检验统计量
+  chisq_stat <- sum((observed - expected)^2 / expected)
+  
+  return(chisq_stat)
+}
+
+# 示例使用
+x <- c(1, 2, 2, 3, 4, 4, 4, 5)
+y <- c(2, 2, 3, 3, 3, 4, 4, 5)
+
+result <- fast_chisq_test(x, y)
+
+print(result)
+
+```
+
+# Exercise 6
+```{r}
+# 设置样本大小
+n <- 1e6
+# 创建数据框，包含随机正态分布的两列
+df <- data.frame(a = rnorm(n), b = rnorm(n))
+
+# 向量化的自助法相关性函数
+cor_df_vectorized <- function(n_bootstrap) {
+  # 一次性生成所有自助样本的索引
+  bootstrap_indices <- matrix(sample(seq(n), n_bootstrap * (n * 0.01), replace = TRUE), 
+                              nrow = n_bootstrap)
+  
+  # 计算所有自助样本的相关性
+  correlations <- apply(bootstrap_indices, 1, function(i) {
+    cor(df[i, , drop = FALSE])[2, 1]
+  })
+  
+  return(correlations)
+}
+
+# 示例：运行函数进行 1000 次自助法采样
+n_bootstrap <- 1000
+result_correlation <- cor_df_vectorized(n_bootstrap)
+
+```
+
+
+```{r}
+# 数据
+d1 <- c(-2.961, 0.478, -0.391, -0.869, -0.460, -0.937, 0.779, -1.409, 0.027, -1.569)
+d2 <- c(1.608, 1.009, 0.878, 1.600, -0.263, 0.680, 2.280, 2.390, 1.793, 8.091, 1.468)
+
+# 计算样本均值差
+mean_diff <- mean(d2) - mean(d1)
+
+# Bootstrap
+library(boot)
+
+# 定义用于bootstrap的统计函数
+boot_mean_diff <- function(data, indices) {
+  d1_sample <- data[indices, 1]
+  d2_sample <- data[indices, 2]
+  return(mean(d2_sample) - mean(d1_sample))
+}
+
+# 将两个数据样本组合
+data_combined <- cbind(d1, d2)
+
+# 进行bootstrap，R = 10000
+bootstrap_result <- boot(data_combined, boot_mean_diff, R = 10000)
+
+# 输出结果
+original_stat <- mean_diff
+sample_std_error <- sd(d2) - sd(d1)
+bootstrap_std_error <- sd(bootstrap_result$t)
+
+cat("Original Statistic (Mean Difference):", original_stat, "\n")
+cat("Sample Standard Error:", sample_std_error, "\n")
+cat("Bootstrap Standard Error:", bootstrap_std_error, "\n")
+```
+
+# Exercise 6.6
+
+```{r}
+# 加载必要的库
+library(moments)  # 用于计算偏度
+set.seed(123)
+
+# 设置参数
+n <- 100  # 样本大小
+n_sim <- 10000  # 蒙特卡洛模拟次数
+quantiles <- c(0.025, 0.05, 0.95, 0.975)  # 需要计算的分位数
+
+# 蒙特卡洛模拟函数
+monte_carlo_skewness <- function(n, n_sim) {
+  skewness_vals <- numeric(n_sim)
+  
+  for (i in 1:n_sim) {
+    sample_data <- rnorm(n)  # 生成正态分布样本
+    skewness_vals[i] <- sqrt(abs(skewness(sample_data)))  # 计算偏度的平方根
+  }
+  
+  return(skewness_vals)
+}
+
+# 运行模拟
+skewness_vals <- monte_carlo_skewness(n, n_sim)
+
+# 计算分位数
+estimated_quantiles <- quantile(skewness_vals, quantiles)
+
+# 计算标准误差（使用公式 sqrt(6/n)）
+std_error <- sqrt(6 / n)
+normal_quantiles <- qnorm(quantiles, mean = 0, sd = std_error)
+
+# 输出结果
+cat("蒙特卡洛模拟的偏度分位数估计:\n")
+print(estimated_quantiles)
+
+cat("大样本近似正态分布的分位数:\n")
+print(normal_quantiles)
+
+# 比较蒙特卡洛模拟与大样本近似值
+comparison <- data.frame(Quantile = quantiles, 
+                         MonteCarlo = estimated_quantiles, 
+                         NormalApprox = normal_quantiles)
+
+cat("蒙特卡洛模拟与大样本近似的比较:\n")
+print(comparison)
+
+```
+
+
+# Exercise 6.B
+
+```{r}
+# 加载必要的库
+library(MASS)  # 用于生成双变量正态分布
+library(psych) # 用于Kendall's Tau相关系数
+library(boot)  # Bootstrap 包含 Kendall's Tau
+
+set.seed(123)
+
+# 1. 生成双变量正态分布样本
+n <- 100  # 样本大小
+rho <- 0.7  # 假设的相关系数
+
+# 生成双变量正态分布
+Sigma <- matrix(c(1, rho, rho, 1), 2, 2)  # 协方差矩阵
+bivariate_normal <- mvrnorm(n, mu = c(0, 0), Sigma = Sigma)
+
+# 提取X和Y
+X <- bivariate_normal[, 1]
+Y <- bivariate_normal[, 2]
+
+# 2. 计算各类相关系数
+pearson_test <- cor.test(X, Y, method = "pearson")
+spearman_test <- cor.test(X, Y, method = "spearman")
+kendall_test <- cor.test(X, Y, method = "kendall")
+
+# 输出相关系数的p值
+cat("Pearson相关系数的p值:", pearson_test$p.value, "\n")
+cat("Spearman相关系数的p值:", spearman_test$p.value, "\n")
+cat("Kendall相关系数的p值:", kendall_test$p.value, "\n")
+
+# 3. 模拟功效：重复上面的步骤，计算在不同样本下的拒绝率（功效）
+
+power_simulation <- function(n_sim, rho, method) {
+  reject_count <- 0
+  for (i in 1:n_sim) {
+    bivariate_normal <- mvrnorm(n, mu = c(0, 0), Sigma = matrix(c(1, rho, rho, 1), 2, 2))
+    X <- bivariate_normal[, 1]
+    Y <- bivariate_normal[, 2]
+    
+    if (method == "pearson") {
+      test <- cor.test(X, Y, method = "pearson")
+    } else if (method == "spearman") {
+      test <- cor.test(X, Y, method = "spearman")
+    } else if (method == "kendall") {
+      test <- cor.test(X, Y, method = "kendall")
+    }
+    
+    if (test$p.value < 0.05) {
+      reject_count <- reject_count + 1
+    }
+  }
+  return(reject_count / n_sim)
+}
+
+n_sim <- 1000  # 模拟次数
+power_pearson <- power_simulation(n_sim, rho, "pearson")
+power_spearman <- power_simulation(n_sim, rho, "spearman")
+power_kendall <- power_simulation(n_sim, rho, "kendall")
+
+cat("皮尔森检验的功效:", power_pearson, "\n")
+cat("斯皮尔曼检验的功效:", power_spearman, "\n")
+cat("肯德尔检验的功效:", power_kendall, "\n")
+
+# 4. 示例：非正态依赖结构
+# 生成依赖于X^2的Y，展示非参数方法更有效
+X_non_normal <- rnorm(n)
+Y_non_normal <- X_non_normal^2 + rnorm(n, sd = 0.5)  # Y依赖于X的非线性函数
+
+# 计算非正态情况下的相关系数
+pearson_test_non_normal <- cor.test(X_non_normal, Y_non_normal, method = "pearson")
+spearman_test_non_normal <- cor.test(X_non_normal, Y_non_normal, method = "spearman")
+kendall_test_non_normal <- cor.test(X_non_normal, Y_non_normal, method = "kendall")
+
+cat("非正态情况下Pearson的p值:", pearson_test_non_normal$p.value, "\n")
+cat("非正态情况下Spearman的p值:", spearman_test_non_normal$p.value, "\n")
+cat("非正态情况下Kendall的p值:", kendall_test_non_normal$p.value, "\n")
+
+
+```
+
+# Question 1
+```{r}
+library(Rcpp)
+cppFunction('
+NumericMatrix gibbs_sampler_rcpp(int N , int n, double a, double b, int x0, double y0) {
+    NumericMatrix chain(N, 2);
+    int x = x0;
+    double y = y0;
+
+    for (int i = 0; i < N; i++) {
+        // 从二项分布Binomial(n, y)中采样x
+        x = R::rbinom(n, y);
+        
+        // 从贝塔分布Beta(x + a, n - x + b)中采样y
+        y = R::rbeta(x + a, n - x + b);
+
+        // 存储采样结果
+        chain(i, 0) = x;
+        chain(i, 1) = y;
+    }
+
+    return chain;
+}
+')
+
+N <- 10000  # 采样数
+n <- 10     # 给定的n
+a <- 2.0    # 参数a
+b <- 2.0    # 参数b
+x0 <- 5     # x的初始值
+y0 <- 0.5   # y的初始值
+
+
+# 运行Rcpp实现的Gibbs采样器
+samples_rcpp <- gibbs_sampler_rcpp(N, n, a, b, x0, y0)
+samples_rcpp_df <- as.data.frame(samples_rcpp)
+colnames(samples_rcpp_df) <- c("x", "y")
+```
+
+```{r}
+# 加载必要的包
+if (!requireNamespace("extraDistr", quietly = TRUE)) {
+  install.packages("extraDistr")
+}
+library(extraDistr)
+
+# 定义Gibbs采样器函数
+gibbs_sampler_r <- function(N, n, a, b, x0, y0) {
+  # 初始化存储采样结果的矩阵
+  chain <- matrix(NA, nrow = N, ncol = 2)
+  colnames(chain) <- c("x", "y")
+  
+  # 设置初始值
+  x <- x0
+  y <- y0
+  
+  for (i in 1:N) {
+    # 从二项分布Binomial(n, y)中采样x
+    x <- rbinom(1, n, y)
+    
+    # 从贝塔分布Beta(x + a, n - x + b)中采样y
+    y <- rbeta(1, x + a, n - x + b)
+    
+    # 存储采样结果
+    chain[i, ] <- c(x, y)
+  }
+  
+  return(chain)
+}
+
+# 参数设置
+N <- 10000  # 采样数
+n <- 10     # 给定的n
+a <- 2.0    # 参数a
+b <- 2.0    # 参数b
+x0 <- 5     # x的初始值
+y0 <- 0.5   # y的初始值
+
+# 运行Gibbs采样器
+samples_r <- gibbs_sampler_r(N, n, a, b, x0, y0)
+samples_r_df <- as.data.frame(samples_r)
+colnames(samples_r_df) <- c("x", "y")
+```
+# Question 2 在qqplot中做对比
+```{r}
+# 比较x的分布
+qqplot(samples_r_df$x, samples_rcpp_df$x, main = "QQ Plot of x",
+       xlab = "Pure R Gibbs Sampler", ylab = "Rcpp Gibbs Sampler")
+abline(0, 1, col = "red")
+
+# 比较y的分布
+qqplot(samples_r_df$y, samples_rcpp_df$y, main = "QQ Plot of y",
+       xlab = "Pure R Gibbs Sampler", ylab = "Rcpp Gibbs Sampler")
+abline(0, 1, col = "red")
+```
+# Question 3
+```{r}
+library(microbenchmark)
+# 比较计算时间
+benchmark_result <- microbenchmark(
+  R = gibbs_sampler_r(N, n, a, b, x0, y0),
+  Rcpp = gibbs_sampler_rcpp(N, n, a, b, x0, y0),
+  times = 10  # 运行10次以获得平均时间
+)
+
+print(benchmark_result)
+```
+# question 4(comment)
+## By looking at the median, the Rcpp function solves this problem in one-twelfth the time of pure R.SO Rcpp is more efficient.
+
+# Exercise 7.4
+```{r}
+# 加载boot库
+library(boot)
+
+# 故障时间数据
+data <- c(3, 5, 7, 18, 43, 85, 91, 98, 100, 130, 230, 487)
+
+# 假设故障时间服从指数分布 Exp(λ)，λ为危险率
+# 最大似然估计 (MLE) 为 1/样本平均数
+mle_lambda <- 1 / mean(data)
+cat("MLE of lambda:", mle_lambda, "\n")
+
+# 定义bootstrap统计量函数，用于计算λ的估计值
+boot_stat <- function(data, indices) {
+  resampled_data <- data[indices]
+  return(1 / mean(resampled_data))
+}
+
+# 进行1000次bootstrap
+n_bootstrap <- 1000
+boot_results <- boot(data, boot_stat, R = n_bootstrap)
+
+# 估计偏差和标准误差
+boot_bias <- mean(boot_results$t) - mle_lambda
+boot_se <- sd(boot_results$t)
+
+cat("Bootstrap bias estimate:", boot_bias, "\n")
+cat("Bootstrap standard error estimate:", boot_se, "\n")
+
+# 生成bootstrap置信区间
+boot_ci <- boot.ci(boot_results, type = "bca")
+print(boot_ci)
+
+```
+# Exercise 7.5
+
+```{r}
+
+# 加载boot库
+library(boot)
+
+# 假设已有数据向量 data，表示故障时间间隔
+# data <- c(...)  # 请用你的数据集代替这里的"data"
+
+# 定义统计量函数，计算平均故障间隔时间
+mean_time_between_failures <- function(data, indices) {
+  return(mean(data[indices]))
+}
+
+# 设定bootstrap次数
+n_bootstrap <- 1000
+
+# 生成bootstrap样本
+boot_results <- boot(data, mean_time_between_failures, R = n_bootstrap)
+
+# 1. 标准正态法 (Standard Normal CI)
+boot_normal_ci <- boot.ci(boot_results, type = "norm")
+
+# 2. 基本法 (Basic CI)
+boot_basic_ci <- boot.ci(boot_results, type = "basic")
+
+# 3. 百分位法 (Percentile CI)
+boot_percentile_ci <- boot.ci(boot_results, type = "perc")
+
+# 4. BCa法 (Bias-corrected and accelerated CI)
+boot_bca_ci <- boot.ci(boot_results, type = "bca")
+
+# 输出四种方法的置信区间
+print(boot_normal_ci)
+print(boot_basic_ci)
+print(boot_percentile_ci)
+print(boot_bca_ci)
+
+```
+
+# Question
+```{r}
+# 总共有1000个假设
+N <- 1000
+
+# 950个零假设, 50个备择假设
+null_count <- 950
+alt_count <- 50
+
+# 生成p值
+null_p <- runif(null_count)
+alt_p <- rbeta(alt_count, 0.1, 1)
+all_p <- c(null_p, alt_p)
+
+# Bonferroni校正
+bonferroni_p <- p.adjust(all_p, method = "bonferroni")
+
+# BH校正  
+bh_p <- p.adjust(all_p, method = "BH")
+
+# 计算FWER, FDR, TPR
+fwer <- sum(bonferroni_p <= 0.1) / 0.1
+fdr <- sum(bh_p <= 0.1) / 0.1
+tpr <- sum(alt_p <= 0.1) / alt_count
+
+# 输出结果
+result <- data.frame(
+  "Bonferroni correction" = c(fwer, fdr, tpr),
+  "B-H correction" = c(fwer, fdr, tpr)
+)
+row.names(result) <- c("FWER", "FDR", "TPR")
+print(result)
+```
+
+# 例子7.7
+
+```{r}
+# 示例数据
+set.seed(123)  # 为了可重复性
+data <- matrix(rnorm(100), nrow=20, ncol=5)  # 生成20个样本的5维数据
+cov_matrix <- cov(data)  # 计算协方差矩阵
+
+# 计算特征值
+eigenvalues <- eigen(cov_matrix)$values
+
+# 计算样本估计量 θ_hat
+theta_hat <- eigenvalues[1] / sum(eigenvalues)
+
+# 自助法估计偏差和标准误差
+B <- 1000  # 自助重采样次数
+theta_bootstrap <- numeric(B)
+
+for (b in 1:B) {
+  # 从原始数据中进行自助重采样
+  sample_indices <- sample(1:nrow(data), replace = TRUE)
+  boot_data <- data[sample_indices, ]
+  
+  # 计算重采样数据的协方差矩阵和特征值
+  boot_cov_matrix <- cov(boot_data)
+  boot_eigenvalues <- eigen(boot_cov_matrix)$values
+  
+  # 计算重采样的 θ_hat
+  theta_bootstrap[b] <- boot_eigenvalues[1] / sum(boot_eigenvalues)
+}
+
+# 计算偏差和标准误差
+bias <- mean(theta_bootstrap) - theta_hat
+standard_error <- sd(theta_bootstrap)
+
+# 输出结果
+cat("Sample Estimate θ_hat:", theta_hat, "\n")
+cat("Bootstrap Bias:", bias, "\n")
+cat("Bootstrap Standard Error:", standard_error, "\n")
+```
+
+# Exercise 7.8
+
+```{r}
+# 示例数据
+data <- theta_bootstrap
+
+# 计算原始估计量
+theta_hat <- mean(data)
+
+# Jackknife估计
+n <- length(data)
+jackknife_estimates <- numeric(n)
+
+for (i in 1:n) {
+  jackknife_estimates[i] <- mean(data[-i])  # 排除第i个样本
+}
+
+# 计算偏差
+bias <- (n - 1) * (mean(jackknife_estimates) - theta_hat)
+
+# 计算标准误差
+standard_error <- sqrt((n - 1) / n * sum((jackknife_estimates - mean(jackknife_estimates))^2))
+
+# 输出结果
+cat("Jackknife Bias:", bias, "\n")
+cat("Jackknife Standard Error:", standard_error, "\n")
+```
+
+# Exercise 7.10
+
+```{r}
+# 加载必要的库
+library(boot)
+
+# 生成示例数据
+set.seed(123)
+n <- 100
+x <- seq(1, n)
+y <- 3 + 2 * x + 0.5 * x^2 - 0.1 * x^3 + rnorm(n, 0, 10)
+
+data <- data.frame(x, y)
+
+# 定义模型列表
+models <- list(
+  lm(y ~ x, data = data),               # 线性模型
+  lm(y ~ poly(x, 2), data = data),      # 二次模型
+  lm(y ~ poly(x, 3), data = data),      # 三次模型
+  lm(log(y) ~ x, data = data)           # 对数模型
+)
+
+# 定义留一交叉验证函数
+loo_cv <- function(model, data) {
+  n <- nrow(data)
+  errors <- numeric(n)
+  
+  for (i in 1:n) {
+    # 留出第i个数据点
+    train_data <- data[-i, ]
+    test_data <- data[i, , drop = FALSE]
+    
+    # 拟合模型
+    fit <- update(model, data = train_data)
+    
+    # 预测
+    pred <- predict(fit, newdata = test_data)
+    
+    # 计算误差
+    errors[i] <- (pred - test_data$y)^2
+  }
+  
+  return(mean(errors))  # 返回均方误差
+}
+
+# 计算每个模型的均方误差
+mse_results <- sapply(models, loo_cv, data = data)
+
+# 输出结果
+model_names <- c("Linear", "Quadratic", "Cubic", "Log-Log")
+results <- data.frame(Model = model_names, MSE = mse_results)
+print(results)
+
+# 计算调整后的R平方
+adjusted_r_squared <- sapply(models, function(model) {
+  summary(model)$adj.r.squared
+})
+
+# 输出调整后的R平方
+adjusted_results <- data.frame(Model = model_names, Adjusted_R2 = adjusted_r_squared)
+print(adjusted_results)
+
+# 选择最佳模型
+best_mse_model <- model_names[which.min(mse_results)]
+best_adj_r2_model <- model_names[which.max(adjusted_r_squared)]
+
+cat("通过交叉验证选择的最佳模型:", best_mse_model, "\n")
+cat("根据最大调整后的R平方选择的模型:", best_adj_r2_model, "\n")
+```
+
+# Exercise 8.1
+
+```{r}
+# 加载必要的库
+library(dplyr)
+
+# 示例数据（请根据需要替换为实际数据）
+set.seed(123)
+data1 <- rnorm(50, mean = 0, sd = 1)
+data2 <- rnorm(50, mean = 0.5, sd = 1)
+
+# 计算原始Cramér-von Mises统计量
+cramer_von_mises <- function(x, y) {
+  n1 <- length(x)
+  n2 <- length(y)
+  combined <- sort(c(x, y))
+  ecdf1 <- ecdf(x)(combined)
+  ecdf2 <- ecdf(y)(combined)
+  return(sum((ecdf1 - ecdf2)^2) * (n1 * n2) / (n1 + n2))
+}
+
+# 原始统计量
+original_statistic <- cramer_von_mises(data1, data2)
+
+# 置换测试的参数
+n_permutations <- 1000
+permutation_results <- numeric(n_permutations)
+
+# 执行置换测试
+combined_data <- c(data1, data2)
+for (i in 1:n_permutations) {
+  permuted_data <- sample(combined_data)
+  permuted_data1 <- permuted_data[1:length(data1)]
+  permuted_data2 <- permuted_data[(length(data1) + 1):length(combined_data)]
+  permutation_results[i] <- cramer_von_mises(permuted_data1, permuted_data2)
+}
+
+# 计算p值
+p_value <- mean(permutation_results >= original_statistic)
+
+# 打印结果
+cat("原始Cramér-von Mises统计量:", original_statistic, "\n")
+cat("置换测试的p值:", p_value, "\n")
+```
+
+# Exercise 8.2
+
+```{r}
+# 加载必要的库
+library(dplyr)
+
+# 生成示例数据
+set.seed(123)
+x <- rnorm(100)
+y <- rnorm(100)
+
+# 计算原始Spearman秩相关系数
+original_spearman <- cor(x, y, method = "spearman")
+
+# 置换测试的参数
+n_permutations <- 1000
+permutation_results <- numeric(n_permutations)
+
+# 执行置换测试
+for (i in 1:n_permutations) {
+  # 随机打乱y
+  y_permuted <- sample(y)
+  # 计算打乱后的Spearman秩相关系数
+  permutation_results[i] <- cor(x, y_permuted, method = "spearman")
+}
+
+# 计算p值
+p_value <- mean(abs(permutation_results) >= abs(original_spearman))
+
+# 打印结果
+cat("原始Spearman秩相关系数:", original_spearman, "\n")
+cat("置换测试的p值:", p_value, "\n")
+
+# 使用cor.test进行标准Spearman检验
+test_result <- cor.test(x, y, method = "spearman")
+cat("cor.test的p值:", test_result$p.value, "\n")
+```
+
+
+# Exercise 9.3
+
+```{r}
+# 加载必要的库
+library(ggplot2)
+
+# Metropolis-Hastings算法
+metropolis_hastings <- function(n, burn_in) {
+  samples <- numeric(n)
+  x <- 0  # 初始值
+
+  for (i in 1:n) {
+    # 提议分布
+    x_new <- rnorm(1, mean = x, sd = 1)
+    
+    # 计算接受概率
+    acceptance_ratio <- dcauchy(x_new) / dcauchy(x)
+    
+    # 决定是否接受新样本
+    if (runif(1) < acceptance_ratio) {
+      x <- x_new
+    }
+    
+    samples[i] <- x
+  }
+  
+  return(samples[(burn_in + 1):n])  # 丢弃前burn_in个样本
+}
+
+# 生成样本
+set.seed(123)
+n_samples <- 10000
+burn_in <- 1000
+samples <- metropolis_hastings(n_samples, burn_in)
+
+# 计算分位数
+deciles <- quantile(samples, probs = seq(0.1, 0.9, by = 0.1))
+print(deciles)
+
+# 绘制直方图
+ggplot(data.frame(samples), aes(x = samples)) +
+  geom_histogram(aes(y = ..density..), bins = 30, fill = 'lightblue', color = 'black') +
+  stat_function(fun = dcauchy, color = 'red') +
+  labs(title = 'Metropolis-Hastings Samples from Cauchy Distribution',
+       x = 'Value', y = 'Density')
+```
+
+# Exercise 9.8
+
+```{r}
+# Gibbs采样器
+gibbs_sampler <- function(n, a, b, n_total) {
+  x_samples <- numeric(n)
+  y_samples <- numeric(n)
+  
+  # 初始值
+  x_samples[1] <- 0
+  y_samples[1] <- 0.5
+  
+  for (i in 2:n) {
+    # 采样x | y
+    x_samples[i] <- rbinom(1, n_total, y_samples[i - 1])
+    
+    # 采样y | x
+    y_samples[i] <- rbeta(1, x_samples[i] + a, n_total - x_samples[i] + b)
+  }
+  
+  return(data.frame(x = x_samples, y = y_samples))
+}
+
+# 生成样本
+set.seed(123)
+n_samples <- 10000
+a <- 1
+b <- 1
+samples_gibbs <- gibbs_sampler(n_samples, a, b, 10)
+
+# 绘制样本
+ggplot(samples_gibbs, aes(x = x, y = y)) +
+  geom_point(alpha = 0.5) +
+  labs(title = 'Gibbs Samples from Joint Density',
+       x = 'X Samples', y = 'Y Samples')
+```
+
+# Exercise
+
+```{r}
+library(coda)
+
+# 假设有多个链
+chains <- list(samples1 = samples, samples2 = samples + rnorm(length(samples)))
+
+# 转换为mcmc对象
+mcmc_chains <- mcmc.list(lapply(chains, mcmc))
+
+# Gelman-Rubin诊断
+gelman_rubin <- gelman.diag(mcmc_chains)
+print(gelman_rubin)
+```
+
+# Exercise
+
+```{r}
+# 加载必要的库
+library(ggplot2)
+
+# 定义目标分布的概率密度函数 (pdf)
+target_pdf <- function(x) {
+  return(dcauchy(x))  # 使用标准Cauchy分布
+}
+
+# 定义提议分布的概率密度函数 (pdf)
+proposal_pdf <- function(x) {
+  return(dnorm(x, mean = 0, sd = 1))  # 使用标准正态分布作为提议分布
+}
+
+# 定义提议分布的反向密度函数
+proposal_pdf_inverse <- function(x, s) {
+  return(dnorm(s, mean = x, sd = 1))  # 计算从s到x的提议分布
+}
+
+# 计算接受概率
+acceptance_probability <- function(r, s) {
+  # 计算接受概率
+  alpha <- target_pdf(r) * proposal_pdf_inverse(r, s) / (target_pdf(s) * proposal_pdf_inverse(s, r))
+  return(min(alpha, 1))  # 返回接受概率，确保不超过1
+}
+
+# Metropolis-Hastings算法实现
+metropolis_hastings <- function(n, burn_in) {
+  samples <- numeric(n)  # 初始化样本向量
+  x <- 0  # 初始值
+
+  for (i in 1:n) {
+    # 从提议分布中生成新样本
+    x_new <- rnorm(1, mean = x, sd = 1)
+    
+    # 计算接受概率
+    acceptance_ratio <- acceptance_probability(x_new, x)
+
+    # 决定是否接受新样本
+    if (runif(1) < acceptance_ratio) {
+      x <- x_new  # 接受新样本
+    }
+
+    samples[i] <- x  # 存储样本
+  }
+  
+  return(samples[(burn_in + 1):n])  # 丢弃前burn_in个样本
+}
+
+# 生成样本
+set.seed(123)  # 设置随机种子以确保可重复性
+n_samples <- 10000  # 总样本数
+burn_in <- 1000  # 丢弃的样本数
+samples <- metropolis_hastings(n_samples, burn_in)
+
+# 绘制结果
+# 绘制直方图
+ggplot(data.frame(samples), aes(x = samples)) +
+  geom_histogram(aes(y = ..density..), bins = 30, fill = 'lightblue', color = 'black') +
+  stat_function(fun = dcauchy, color = 'red') +
+  labs(title = 'Metropolis-Hastings Samples from Cauchy Distribution',
+       x = 'Value', y = 'Density')
+```
+
+# Exercise 11.3
+```{r}
+# 计算第k项的函数
+compute_kth_term <- function(k, a) {
+  d <- length(a)  # 向量的维度
+  norm_a <- sqrt(sum(a^2))  # 欧几里得范数
+  
+  # 计算每一项
+  numerator <- (-1)^k * norm_a^(2 * k + 2) * 
+    gamma(d / 2 + 1) * gamma(k + 3 / 2)
+  denominator <- factorial(k) * 2^k * (2 * k + 1) * (2 * k + 2) * 
+    gamma(k + d / 2 + 1)
+  
+  term <- numerator / denominator
+  return(term)
+}
+
+# 计算总和的函数
+compute_sum <- function(a, max_k = 100) {
+  total_sum <- 0
+  for (k in 0:max_k) {
+    total_sum <- total_sum + compute_kth_term(k, a)
+  }
+  return(total_sum)
+}
+
+# 示例调用
+a_vector <- c(1, 2)  # 向量a
+sum_result <- compute_sum(a_vector)
+print(sum_result)
+```
+
+# Exercise 11.5
+```{r}
+# 加载必要的库
+library(gmp)  # 用于大数计算
+
+# 定义计算ck的函数
+compute_ck <- function(a, k) {
+  return(sqrt((a^2 * k) / (k + 1 - a^2)))
+}
+
+# 定义积分的函数
+integrate_function <- function(k, c_k) {
+  integrand1 <- function(u) (1 + u^2 / (k - 1))^(-k / 2)
+  integral1 <- integrate(integrand1, 0, c_k)$value
+  
+  integrand2 <- function(u) (1 + u^2 / k)^(-(k + 1) / 2)
+  integral2 <- integrate(integrand2, 0, c_k)$value
+  
+  return(list(integral1 = integral1, integral2 = integral2))
+}
+
+# 定义主函数来解决方程
+solve_equation <- function(k, a) {
+  c_k <- compute_ck(a, k)
+  
+  integrals <- integrate_function(k, c_k)
+  
+  left_side <- (2 * gamma(k / 2)) / (sqrt(pi * (k - 1)) * gamma((k - 1) / 2)) * integrals$integral1
+  right_side <- (2 * gamma((k + 1) / 2)) / (sqrt(pi * k) * k * gamma(k / 2)) * integrals$integral2
+  
+  return(c(left_side, right_side))
+}
+
+# 示例调用
+a_value <- 1  # 可以根据需要更改
+k_values <- 2:10  # 选择k的范围
+results <- sapply(k_values, function(k) solve_equation(k, a_value))
+
+# 打印结果
+for (i in 1:length(k_values)) {
+  cat("k =", k_values[i], ":\n")
+  cat("Left Side:", results[1, i], "\n")
+  cat("Right Side:", results[2, i], "\n\n")
+}
+```
+
+# Exercise 
+```{r}
+# E-M算法实现
+em_algorithm <- function(Y, max_iter = 100, tol = 1e-6) {
+  n <- length(Y)
+  lambda <- 1 / mean(Y[Y < 1])  # 初始值
+  
+  for (iter in 1:max_iter) {
+    # E步：计算期望
+    expected_value <- sum(Y[Y < 1]) + (n - sum(Y < 1)) * (1 - exp(-lambda))
+    
+    # M步：更新λ
+    new_lambda <- n / expected_value
+    
+    # 收敛检查
+    if (abs(new_lambda - lambda) < tol) {
+      break
+    }
+    lambda <- new_lambda
+  }
+  
+  return(lambda)
+}
+
+# 计算观察数据的MLE
+mle_lambda <- function(Y) {
+  n <- length(Y)
+  return(n / sum(Y[Y < 1]))
+}
+
+# 给定的观察值
+Y <- c(0.54, 0.48, 0.33, 0.43, 1.00, 1.00, 0.91, 1.00, 0.21, 0.85)
+
+# 使用E-M算法估计λ
+lambda_em <- em_algorithm(Y)
+
+# 计算观察数据的MLE
+lambda_mle <- mle_lambda(Y)
+
+# 打印结果
+cat("E-M算法估计的λ:", lambda_em, "\n")
+cat("观察数据的MLE估计的λ:", lambda_mle, "\n")
+```
+
+# Exercise 3.4
+
+```{r}
+generate_rayleigh_samples <- function(sigma, size) {
+  U <- runif(size)  
+  rayleigh_samples <- sigma * sqrt(-2 * log(1 - U))  
+  return(rayleigh_samples)
+}
+
+sigmas <- c(0.5, 1.0, 2.0)  
+size <- 1000  
+
+if(!require(ggplot2)) {
+  install.packages("ggplot2")
+  library(ggplot2)
+}
+
+for (sigma in sigmas) {
+  samples <- generate_rayleigh_samples(sigma, size)
+  
+  df <- data.frame(samples = samples)
+  p <- ggplot(df, aes(x = samples)) +
+    geom_histogram(aes(y = ..density..), bins = 30, fill = "green", alpha = 0.6) +
+    geom_vline(xintercept = sigma, color = "red", linetype = "dashed", size = 1) +
+    labs(title = paste("Rayleigh Distribution (σ =", sigma, ")"), x = "Value", y = "Density") +
+    theme_minimal()
+  
+  print(p)
+  
+  cat("Theoretical mode for σ =", sigma, "is:", sigma, "\n")
+}
+```
+
+# Exercise 3.11
+
+```{r}
+if(!require(ggplot2)) {
+  install.packages("ggplot2")
+  library(ggplot2)
+}
+generate_mixture_samples <- function(p1, size) {
+  indicator <- rbinom(size, 1, p1)  
+  samples <- ifelse(indicator == 0, rnorm(size, mean = 0, sd = 1), rnorm(size, mean = 3, sd = 1))
+  return(samples)
+}
+p1_values <- c(0.75, 0.5, 0.25)  
+size <- 1000  
+for (p1 in p1_values) {
+  samples <- generate_mixture_samples(p1, size)
+  df <- data.frame(samples = samples)
+  p <- ggplot(df, aes(x = samples)) +
+    geom_histogram(aes(y = ..density..), bins = 30, fill = "blue", alpha = 0.5) +
+    geom_density(color = "red", size = 1) +
+    labs(title = paste("Normal Mixture Distribution (p1 =", p1, ")"), x = "Value", y = "Density") +
+    theme_minimal()
+  
+  print(p)
+}
+```
+## p1=0.5时出现明显双驼峰
+
+# Exercise 3.20
+
+```{r}
+lambda <- 2  
+alpha <- 2   
+beta <- 1    
+t <- 10      
+n_simulations <- 100000 
+# 定义一个函数模拟X(t)
+simulate_compound_poisson <- function(lambda, alpha, beta, t) {
+  N_t <- rpois(1, lambda * t)  # 模拟泊松过程 N(t)
+  if (N_t == 0) {
+    return(0)  # 如果N(t) = 0，则X(t) = 0
+  } else {
+    Y <- rgamma(N_t, shape = alpha, scale = beta)  # 生成N(t)个Gamma分布的随机变量
+    return(sum(Y))  # 返回伽马分布随机变量的和
+  }
+}
+# 执行模拟
+X_t_samples <- replicate(n_simulations, simulate_compound_poisson(lambda, alpha, beta, t))
+# 计算模拟的均值和方差
+mean_simulated <- mean(X_t_samples)
+var_simulated <- var(X_t_samples)
+# 理论均值和方差计算
+E_Y1 <- alpha / beta  # Gamma分布的均值
+E_Y1_squared <- alpha / (beta^2)  # Gamma分布的平方的期望
+mean_theoretical <- lambda * t * E_Y1
+var_theoretical <- lambda * t * E_Y1_squared
+
+# 打印结果
+cat("模拟的均值:", mean_simulated, "\n")
+cat("理论均值:", mean_theoretical, "\n")
+cat("模拟的方差:", var_simulated, "\n")
+cat("理论方差:", var_theoretical, "\n")
+
+# 绘制直方图以展示模拟的结果分布
+if(!require(ggplot2)) {
+  install.packages("ggplot2")
+  library(ggplot2)
+}
+
+df <- data.frame(X_t_samples = X_t_samples)
+ggplot(df, aes(x = X_t_samples)) +
+  geom_histogram(aes(y = ..density..), bins = 30, fill = "blue", alpha = 0.5) +
+  geom_density(color = "red", size = 1) +
+  labs(title = "Compound Poisson-Gamma Process Simulation", x = "X(t)", y = "Density") +
+  theme_minimal()
+```
+
+
+
+

@@ -1,0 +1,16 @@
+Package: MCPackage
+Type: Package
+Title: Monte Carlo Integration
+Version: 0.1.0
+Author: Zhonglei
+Maintainer: Zhonglei <2915336839@qq.com>
+Description: A package to perform Monte Carlo integration using R and Rcpp.
+License: GPL (>= 2)
+Imports: Rcpp (>= 1.0.0)
+LinkingTo: Rcpp
+Encoding: UTF-8
+Suggests: knitr, rmarkdown
+RoxygenNote: 7.3.2
+VignetteBuilder: knitr
+URL: http://github.com/Zhonglei123/MCPackage
+BugReports: http://github.com/Zhonglei123/MCPackage/issues
